@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, TrendingUp, Clock, MapPin, DollarSign, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
+import { Calculator, TrendingUp, Clock, MapPin, DollarSign, ThumbsUp, ThumbsDown, RotateCcw, Power, Radio } from "lucide-react";
+import MonitoringPopup from "./MonitoringPopup";
 
 interface RideResult {
   valuePerKm: number;
@@ -19,6 +20,9 @@ const EarningsTab = () => {
   const [minPerHour, setMinPerHour] = useState("25.00");
   const [result, setResult] = useState<RideResult | null>(null);
   const [history, setHistory] = useState<RideResult[]>([]);
+  const [monitoringActive, setMonitoringActive] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupResult, setPopupResult] = useState<RideResult | null>(null);
 
   const calculate = () => {
     const val = parseFloat(rideValue);
@@ -36,6 +40,11 @@ const EarningsTab = () => {
     const r: RideResult = { valuePerKm, valuePerHour, isGood, totalValue: val, distance: dist, time: t };
     setResult(r);
     setHistory((prev) => [r, ...prev].slice(0, 10));
+
+    if (monitoringActive) {
+      setPopupResult(r);
+      setShowPopup(true);
+    }
   };
 
   const reset = () => {
@@ -47,10 +56,76 @@ const EarningsTab = () => {
 
   return (
     <div className="px-4 sm:px-6 py-6 sm:py-8 space-y-5">
+      {/* Monitoring Popup */}
+      <MonitoringPopup
+        open={showPopup}
+        onClose={() => setShowPopup(false)}
+        result={popupResult}
+        minPerKm={minPerKm}
+        minPerHour={minPerHour}
+      />
+
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-foreground">Calculadora de Corrida</h2>
         <p className="text-muted-foreground text-xs sm:text-sm mt-1">Descubra se a corrida vale a pena</p>
       </div>
+
+      {/* Monitoring Toggle */}
+      <motion.div
+        layout
+        className={`rounded-3xl border p-4 sm:p-5 transition-all ${
+          monitoringActive
+            ? "border-primary/50 glow-neon gradient-card"
+            : "gradient-card border-border"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              monitoringActive ? "gradient-neon" : "bg-muted"
+            }`}>
+              {monitoringActive ? (
+                <Radio className="w-5 h-5 text-primary-foreground animate-pulse" />
+              ) : (
+                <Power className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                {monitoringActive ? "Monitoramento Ativo" : "Monitoramento"}
+              </h3>
+              <p className="text-[10px] text-muted-foreground">
+                {monitoringActive
+                  ? "Popup automático ao calcular"
+                  : "Ative para ver popups de resultado"}
+              </p>
+            </div>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setMonitoringActive(!monitoringActive)}
+            className={`relative w-14 h-8 rounded-full transition-colors ${
+              monitoringActive ? "bg-primary" : "bg-muted"
+            }`}
+          >
+            <motion.div
+              layout
+              className={`absolute top-1 w-6 h-6 rounded-full shadow-md ${
+                monitoringActive ? "right-1 bg-primary-foreground" : "left-1 bg-muted-foreground"
+              }`}
+            />
+          </motion.button>
+        </div>
+        {monitoringActive && (
+          <motion.p
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="text-[10px] text-primary mt-3 bg-primary/10 rounded-xl p-2 text-center"
+          >
+            ⚡ Preencha os dados e clique em Calcular para ver o popup automático
+          </motion.p>
+        )}
+      </motion.div>
 
       {/* Calculator Form */}
       <motion.div layout className="gradient-card rounded-3xl border border-border p-4 sm:p-5 space-y-3">
