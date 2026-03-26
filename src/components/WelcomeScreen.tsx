@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Car, Shield, DollarSign, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import logoImg from "@/assets/logo.png";
+import slideBg1 from "@/assets/slide-bg-1.jpg";
+import slideBg2 from "@/assets/slide-bg-2.jpg";
+import slideBg3 from "@/assets/slide-bg-3.jpg";
 
 const slides = [
   {
@@ -10,18 +14,21 @@ const slides = [
     title: "Maximize seus Ganhos",
     subtitle: "Saiba exatamente quanto você ganha por KM rodado",
     color: "text-primary",
+    bg: slideBg1,
   },
   {
     icon: Shield,
     title: "Dirija com Segurança",
     subtitle: "Câmera discreta para sua proteção em tempo real",
     color: "text-secondary",
+    bg: slideBg2,
   },
   {
     icon: Car,
     title: "Controle Total",
     subtitle: "Monitore corridas, tempo e ganhos em um só lugar",
     color: "text-primary",
+    bg: slideBg3,
   },
 ];
 
@@ -77,13 +84,13 @@ const WelcomeScreen = ({ onStart, onLogin }: WelcomeScreenProps) => {
   return (
     <div className="flex flex-col min-h-screen items-center justify-between px-4 sm:px-6 py-8 sm:py-12">
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm">
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl font-extrabold text-gradient-neon mb-2 tracking-tight"
+          className="flex flex-col items-center"
         >
-          DriverPro
-        </motion.h1>
+          <img src={logoImg} alt="DriverPro" className="w-16 h-16 sm:w-20 sm:h-20 mb-2 rounded-2xl" />
+        </motion.div>
         <p className="text-muted-foreground text-xs sm:text-sm mb-6 sm:mb-10">Seu copiloto inteligente</p>
 
         <AnimatePresence mode="wait">
@@ -97,14 +104,20 @@ const WelcomeScreen = ({ onStart, onLogin }: WelcomeScreenProps) => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -60 }}
                     transition={{ duration: 0.4 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center gradient-card rounded-3xl border border-border p-6 sm:p-8"
+                    className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border border-border p-6 sm:p-8 overflow-hidden"
                   >
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${slides[current].bg})`, filter: 'blur(4px) brightness(0.3)' }}
+                    />
+                    <div className="relative z-10 flex flex-col items-center">
                     {(() => {
                       const Icon = slides[current].icon;
                       return <Icon className={`w-12 h-12 sm:w-16 sm:h-16 ${slides[current].color} mb-4 sm:mb-6`} strokeWidth={1.5} />;
                     })()}
                     <h2 className="text-lg sm:text-xl font-bold text-foreground text-center mb-2">{slides[current].title}</h2>
                     <p className="text-muted-foreground text-center text-xs sm:text-sm">{slides[current].subtitle}</p>
+                    </div>
                   </motion.div>
                 </AnimatePresence>
               </div>
