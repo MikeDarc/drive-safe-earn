@@ -84,11 +84,13 @@ const WelcomeScreen = ({ onStart, onLogin }: WelcomeScreenProps) => {
   return (
     <div className="flex flex-col min-h-screen items-center justify-between px-4 sm:px-6 py-8 sm:py-12">
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm">
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center"
+        >
           <img src={logoImg} alt="DriverPro" className="w-16 h-16 sm:w-20 sm:h-20 mb-2 rounded-2xl" />
-        </motion.h1>
+        </motion.div>
         <p className="text-muted-foreground text-xs sm:text-sm mb-6 sm:mb-10">Seu copiloto inteligente</p>
 
         <AnimatePresence mode="wait">
