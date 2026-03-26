@@ -6,8 +6,29 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     url: 'https://ab4d3549-aaf9-4cc1-91d4-76f3ac733589.lovableproject.com?forceHideBadge=true',
-    cleartext: true
-  }
+    cleartext: true,
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#0d1117',
+      showSpinner: false,
+      androidScaleType: 'CENTER_CROP',
+    },
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#0d1117',
+    },
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
+  },
 };
 
 export default config;

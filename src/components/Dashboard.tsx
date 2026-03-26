@@ -39,7 +39,7 @@ const Dashboard = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/80 backdrop-blur-xl safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/80 backdrop-blur-xl safe-area-bottom z-40">
         <div className="flex justify-around items-center py-2.5 sm:py-3 max-w-md mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
