@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Car, Shield, DollarSign, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import logoImg from "@/assets/logo.png";
+import slideBg1 from "@/assets/slide-bg-1.jpg";
+import slideBg2 from "@/assets/slide-bg-2.jpg";
+import slideBg3 from "@/assets/slide-bg-3.jpg";
 
 const slides = [
   {
@@ -10,18 +14,21 @@ const slides = [
     title: "Maximize seus Ganhos",
     subtitle: "Saiba exatamente quanto você ganha por KM rodado",
     color: "text-primary",
+    bg: slideBg1,
   },
   {
     icon: Shield,
     title: "Dirija com Segurança",
     subtitle: "Câmera discreta para sua proteção em tempo real",
     color: "text-secondary",
+    bg: slideBg2,
   },
   {
     icon: Car,
     title: "Controle Total",
     subtitle: "Monitore corridas, tempo e ganhos em um só lugar",
     color: "text-primary",
+    bg: slideBg3,
   },
 ];
 
