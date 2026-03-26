@@ -87,9 +87,7 @@ const WelcomeScreen = ({ onStart, onLogin }: WelcomeScreenProps) => {
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl font-extrabold text-gradient-neon mb-2 tracking-tight"
-        >
-          DriverPro
+          <img src={logoImg} alt="DriverPro" className="w-16 h-16 sm:w-20 sm:h-20 mb-2 rounded-2xl" />
         </motion.h1>
         <p className="text-muted-foreground text-xs sm:text-sm mb-6 sm:mb-10">Seu copiloto inteligente</p>
 
@@ -104,14 +102,20 @@ const WelcomeScreen = ({ onStart, onLogin }: WelcomeScreenProps) => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -60 }}
                     transition={{ duration: 0.4 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center gradient-card rounded-3xl border border-border p-6 sm:p-8"
+                    className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border border-border p-6 sm:p-8 overflow-hidden"
                   >
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${slides[current].bg})`, filter: 'blur(4px) brightness(0.3)' }}
+                    />
+                    <div className="relative z-10 flex flex-col items-center">
                     {(() => {
                       const Icon = slides[current].icon;
                       return <Icon className={`w-12 h-12 sm:w-16 sm:h-16 ${slides[current].color} mb-4 sm:mb-6`} strokeWidth={1.5} />;
                     })()}
                     <h2 className="text-lg sm:text-xl font-bold text-foreground text-center mb-2">{slides[current].title}</h2>
                     <p className="text-muted-foreground text-center text-xs sm:text-sm">{slides[current].subtitle}</p>
+                    </div>
                   </motion.div>
                 </AnimatePresence>
               </div>
