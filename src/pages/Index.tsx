@@ -24,7 +24,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen">
+    <div className="max-w-md mx-auto min-h-screen min-h-[100dvh] safe-area-inset">
       {screen === "welcome" && (
         <WelcomeScreen
           onStart={() => setScreen("permissions")}
