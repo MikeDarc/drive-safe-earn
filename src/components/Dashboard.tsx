@@ -2,10 +2,11 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import EarningsTab from "./EarningsTab";
 import CameraTab from "./CameraTab";
-import { Calculator, Camera, Settings } from "lucide-react";
+import SettingsTab from "./SettingsTab";
+import { Radio, Camera, Settings } from "lucide-react";
 
 const tabs = [
-  { id: "earnings", label: "Calcular", icon: Calculator },
+  { id: "earnings", label: "Monitor", icon: Radio },
   { id: "camera", label: "Câmera", icon: Camera },
   { id: "settings", label: "Config", icon: Settings },
 ];
@@ -28,11 +29,8 @@ const Dashboard = () => {
             </motion.div>
           )}
           {activeTab === "settings" && (
-            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-4 sm:px-6 py-6 sm:py-8">
-              <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Configurações</h2>
-              <div className="gradient-card rounded-3xl border border-border p-5">
-                <p className="text-muted-foreground text-sm">Em breve: Personalize suas preferências aqui.</p>
-              </div>
+            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <SettingsTab />
             </motion.div>
           )}
         </AnimatePresence>

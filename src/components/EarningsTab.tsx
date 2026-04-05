@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, MapPin, DollarSign, Power, Radio, TrendingUp, Zap } from "lucide-react";
+import { Power, Radio, Zap, AlertTriangle, Smartphone } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import MonitoringPopup from "./MonitoringPopup";
+import { loadSettings } from "@/lib/settings";
 
 interface RideResult {
   valuePerKm: number;
@@ -13,38 +15,68 @@ interface RideResult {
 }
 
 const EarningsTab = () => {
-  const [minPerKm, setMinPerKm] = useState("2.00");
-  const [minPerHour, setMinPerHour] = useState("25.00");
-  const [maxTime, setMaxTime] = useState("30");
   const [monitoringActive, setMonitoringActive] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupResult, setPopupResult] = useState<RideResult | null>(null);
-  const [rideValue, setRideValue] = useState("");
-  const [rideDistance, setRideDistance] = useState("");
-  const [rideTime, setRideTime] = useState("");
   const [history, setHistory] = useState<RideResult[]>([]);
+  const settings = loadSettings();
 
-  const evaluate = () => {
-    const val = parseFloat(rideValue);
-    const dist = parseFloat(rideDistance);
-    const t = parseFloat(rideTime);
-    if (!val || !dist || !t || val <= 0 || dist <= 0 || t <= 0) return;
+  const isNative = Capacitor.isNativePlatform();
 
-    const valuePerKm = val / dist;
-    const valuePerHour = (val / t) * 60;
-    const minKm = parseFloat(minPerKm) || 2;
-    const minHr = parseFloat(minPerHour) || 25;
-    const mTime = parseFloat(maxTime) || 30;
-    const isGood = valuePerKm >= minKm && valuePerHour >= minHr && t <= mTime;
+  // Listen for ride offers from the native accessibility service
+  useEffect(() => {
+    if (!monitoringActive || !isNative) return;
 
-    const r: RideResult = { valuePerKm, valuePerHour, isGood, totalValue: val, distance: dist, time: t };
-    setPopupResult(r);
-    setShowPopup(true);
-    setHistory((prev) => [r, ...prev].slice(0, 20));
-    setRideValue("");
-    setRideDistance("");
-    setRideTime("");
-  };
+    let removeListener: (() => void) | null = null;
+
+    const setup = async () => {
+      try {
+        const { DriverProPlugin } = await import("@/lib/capacitor-driverpro");
+        await DriverProPlugin.startMonitoring();
+
+        const listener = await DriverProPlugin.addListener("rideOfferDetected", (offer) => {
+          const s = loadSettings();
+          const minKm = parseFloat(s.minPerKm) || 2;
+          const minHr = parseFloat(s.minPerHour) || 25;
+          const mTime = parseFloat(s.maxTime) || 30;
+
+          const valuePerKm = offer.value / offer.distance;
+          const valuePerHour = (offer.value / offer.time) * 60;
+          const isGood = valuePerKm >= minKm && valuePerHour >= minHr && offer.time <= mTime;
+
+          const result: RideResult = {
+            valuePerKm,
+            valuePerHour,
+            isGood,
+            totalValue: offer.value,
+            distance: offer.distance,
+            time: offer.time,
+          };
+
+          setPopupResult(result);
+          setShowPopup(true);
+          setHistory((prev) => [result, ...prev].slice(0, 20));
+        });
+
+        removeListener = listener.remove;
+      } catch (err) {
+        console.warn("Native monitoring not available:", err);
+      }
+    };
+
+    setup();
+
+    return () => {
+      removeListener?.();
+      if (isNative) {
+        import("@/lib/capacitor-driverpro").then(({ DriverProPlugin }) =>
+          DriverProPlugin.stopMonitoring().catch(() => {})
+        );
+      }
+    };
+  }, [monitoringActive, isNative]);
+
+  const toggleMonitoring = () => setMonitoringActive(!monitoringActive);
 
   return (
     <div className="px-4 sm:px-6 py-6 sm:py-8 space-y-5">
@@ -52,181 +84,111 @@ const EarningsTab = () => {
         open={showPopup}
         onClose={() => setShowPopup(false)}
         result={popupResult}
-        minPerKm={minPerKm}
-        minPerHour={minPerHour}
+        minPerKm={settings.minPerKm}
+        minPerHour={settings.minPerHour}
       />
 
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-foreground">Monitoramento de Ganhos</h2>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">Configure seus valores ideais e avalie corridas</p>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+          Ative para avaliar corridas automaticamente
+        </p>
       </div>
 
-      {/* Preferências do Motorista */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="gradient-card rounded-3xl border border-border p-4 sm:p-5"
-      >
-        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          Seus Valores Ideais
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Valor mínimo por KM (R$)</label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="Ex: 2.00"
-                value={minPerKm}
-                onChange={(e) => setMinPerKm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Valor mínimo por Hora (R$)</label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="Ex: 25.00"
-                value={minPerHour}
-                onChange={(e) => setMinPerHour(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Tempo máximo de corrida (min)</label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-              <input
-                type="number"
-                inputMode="numeric"
-                placeholder="Ex: 30"
-                value={maxTime}
-                onChange={(e) => setMaxTime(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Monitoramento Toggle */}
+      {/* Main Monitoring Toggle */}
       <motion.div
         layout
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className={`rounded-3xl border p-4 sm:p-5 transition-all ${
+        className={`rounded-3xl border p-5 sm:p-6 transition-all ${
           monitoringActive ? "border-primary/50 glow-neon gradient-card" : "gradient-card border-border"
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
-              monitoringActive ? "gradient-neon" : "bg-muted"
-            }`}>
-              {monitoringActive ? (
-                <Radio className="w-5 h-5 text-primary-foreground animate-pulse" />
-              ) : (
-                <Power className="w-5 h-5 text-muted-foreground" />
-              )}
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground">
-                {monitoringActive ? "Monitoramento Ativo" : "Ativar Monitoramento"}
-              </h3>
-              <p className="text-[10px] text-muted-foreground">
-                {monitoringActive ? "Insira os dados da corrida abaixo" : "Avalie corridas com seus valores ideais"}
-              </p>
-            </div>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setMonitoringActive(!monitoringActive)}
-            className={`relative w-14 h-8 rounded-full transition-colors ${
-              monitoringActive ? "bg-primary" : "bg-muted"
+        <div className="flex flex-col items-center text-center gap-4">
+          <motion.div
+            animate={monitoringActive ? { scale: [1, 1.1, 1] } : {}}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all ${
+              monitoringActive ? "gradient-neon glow-neon" : "bg-muted"
             }`}
           >
-            <motion.div
-              layout
-              className={`absolute top-1 w-6 h-6 rounded-full shadow-md ${
-                monitoringActive ? "right-1 bg-primary-foreground" : "left-1 bg-muted-foreground"
-              }`}
-            />
+            {monitoringActive ? (
+              <Radio className="w-10 h-10 text-primary-foreground" />
+            ) : (
+              <Power className="w-10 h-10 text-muted-foreground" />
+            )}
+          </motion.div>
+
+          <div>
+            <h3 className="text-lg font-bold text-foreground">
+              {monitoringActive ? "Monitoramento Ativo" : "Monitoramento Inativo"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {monitoringActive
+                ? "Avaliando corridas em tempo real"
+                : "Toque para começar a monitorar"}
+            </p>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleMonitoring}
+            className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
+              monitoringActive
+                ? "bg-destructive text-destructive-foreground"
+                : "gradient-neon text-primary-foreground glow-neon"
+            }`}
+          >
+            {monitoringActive ? (
+              <>
+                <Power className="w-5 h-5" /> Desativar
+              </>
+            ) : (
+              <>
+                <Zap className="w-5 h-5" /> Ativar Monitoramento
+              </>
+            )}
           </motion.button>
         </div>
       </motion.div>
 
-      {/* Entrada rápida da corrida (visível quando monitoramento ativo) */}
+      {/* Status info */}
       <AnimatePresence>
         {monitoringActive && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="gradient-card rounded-3xl border border-primary/20 p-4 sm:p-5 space-y-3"
+            className="space-y-3"
           >
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              Dados da Corrida
-            </h3>
-            <div className="space-y-3">
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="Valor da corrida (R$)"
-                  value={rideValue}
-                  onChange={(e) => setRideValue(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="Distância (km)"
-                    value={rideDistance}
-                    onChange={(e) => setRideDistance(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="Tempo (min)"
-                    value={rideTime}
-                    onChange={(e) => setRideTime(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
+            {!isNative && (
+              <div className="gradient-card rounded-2xl border border-border p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Modo Web</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    A leitura automática de tela requer o app nativo instalado. Instale o APK para
+                    monitoramento automático do Uber/99.
+                  </p>
                 </div>
               </div>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={evaluate}
-                className="w-full py-3 rounded-2xl gradient-neon text-primary-foreground font-bold text-sm glow-neon flex items-center justify-center gap-2"
-              >
-                <Zap className="w-4 h-4" />
-                Avaliar Corrida
-              </motion.button>
+            )}
+
+            <div className="gradient-card rounded-2xl border border-primary/20 p-4 flex items-start gap-3">
+              <Smartphone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground">Como funciona</p>
+                <p className="text-[10px] text-muted-foreground">
+                  O app lê as informações da corrida no Uber/99, compara com seus valores ideais
+                  (configurados em Config) e mostra um popup instantâneo dizendo se vale a pena aceitar.
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Histórico */}
+      {/* History */}
       <AnimatePresence>
         {history.length > 0 && (
           <motion.div
